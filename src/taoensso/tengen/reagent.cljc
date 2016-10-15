@@ -115,86 +115,22 @@
   - Magic bindings: `this-cmpt`, `this-mounting?`.
   - Nodes: `[<cmpt> {:ref (fn [node] _)}]` or `(enc/oget ev \"currentTarget\")`.
   - Call Reagent components as:
-    * (cmptfn <...>) - to get inlining.
-    * [cmptfn <...>] - to get an intermediary Reagent component:
+    * (<cmpt> <...>) - to get inlining.
+    * [<cmpt> <...>] - to get an intermediary Reagent component:
       * Rerender-iff-args-change semantics.
-      * Can take ^{:key _} [cmptfn <...>]."
+      * Can take ^{:key _} [<cmpt> <...>]."
   [id params & args]
-  (let [implicit-render-body? (odd? (count args))
-        args-map
-        (if implicit-render-body?
-          (common/hash-map-with-unique-ks (butlast args))
-          (common/hash-map-with-unique-ks          args))
-
-        _ (have? [:ks<= #{:let-mount :let-render :render
-                          :post-render :unmount}]
-            args-map)
-
-        _ (when implicit-render-body?
-            (assert (not (contains? args-map :render))
-              "Ambiguous render body: provided as both a :render value and implicit final arg"))
-
-        have-arg?   (set (keys args-map)) ; For existance check w/o val eval
-        render-body (if implicit-render-body? (last args) (:render args-map))
-        _           (assert render-body "No (nil) render body provided")
-
-        ;; [x :x y x]
-        mount-bindings  (:let-mount  args-map)
-        render-bindings (:let-render args-map)
-
-        ;; [[x y] [:x x]] ; We actually just want the lval forms here
-        [ mount-lvals  _mount-rvals] (common/split-let-pairs  mount-bindings)
-        [render-lvals _render-rvals] (common/split-let-pairs render-bindings)
-
-        ;; Define our cfn lifecycle fns
-        ;; NB We try minimize code expansion size here (esp. gensyms)
-
-        argv
-        (if (seq params)
-          (into ['__] params) ; [__ x y z ...]
-          '__)
-
-        ?mount-rvals-fn
-        (when (seq mount-bindings)
-          `(fn [~'this-cmpt ~argv]
-             (common/binding-rvals ~mount-bindings)))
-
-        ?render-rvals-fn
-        (when (seq render-bindings)
-          `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals]
-             (common/binding-rvals ~render-bindings)))
-
-        render-fn
-        `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals ~render-lvals]
-           ~render-body)
-
-        ?post-render-fn
-        (when (have-arg? :post-render)
-          `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals ~render-lvals]
-             ~(:post-render args-map)))
-
-        ?unmount-fn
-        (when (have-arg? :unmount)
-          `(fn [~'this-cmpt ~argv ~mount-lvals ~render-lvals]
-             ~(:unmount args-map)))]
-
-    `(-new-cmptfn
-       ~id
-       ~?mount-rvals-fn
-       ~?render-rvals-fn
-       ~render-fn
-       ~?post-render-fn
-       ~?unmount-fn)))
+  `(common/cmptfn taoensso.tengen.reagent/-new-cmptfn
+     ~id ~params ~@args))
 
 (defmacro def-cmptfn
   "Defines a top-level Reagent component fn using `cmptfn`.
   See the `cmptfn` docstring for more details on args, etc."
   [sym & sigs]
-  (let [[sym args] (enc/name-with-attrs sym sigs)]
-    `(def ~sym
-       (cmptfn
-         ~(str *ns* "/" sym ":" (:line (meta &form) "?"))
-         ~@args))))
+  `(common/def-cmptfn taoensso.tengen.reagent/-new-cmptfn
+     ~sym
+     ~(str *ns* "/" sym ":" (:line (meta &form) "?"))
+     ~@sigs))
 
 (comment
   (macroexpand                  '(cmptfn :id [x] [:div x]))

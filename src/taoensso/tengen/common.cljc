@@ -1,6 +1,8 @@
 (ns taoensso.tengen.common
   "Private common implementation details."
-  (:require [taoensso.encore :as enc]))
+  (:require
+   #?(:clj  [taoensso.encore :as enc :refer        [have have?]])
+   #?(:cljs [taoensso.encore :as enc :refer-macros [have have?]])))
 
 (defmacro binding-rvals
   "Evaluates and returns vector of rhs values for given bindings while
@@ -58,3 +60,78 @@
     kvs))
 
 (comment (hash-map-with-unique-ks [:a :A :b :B :a :A2]))
+
+(defmacro cmptfn [impl-constructor-fn id params & args]
+  (let [implicit-render-body? (odd? (count args))
+        args-map
+        (if implicit-render-body?
+          (hash-map-with-unique-ks (butlast args))
+          (hash-map-with-unique-ks          args))
+
+        _ (have? [:ks<= #{:let-mount :let-render :render
+                          :post-render :unmount}]
+            args-map)
+
+        _ (when implicit-render-body?
+            (assert (not (contains? args-map :render))
+              "Ambiguous render body: provided as both a :render value and implicit final arg"))
+
+        have-arg?   (set (keys args-map)) ; For existance check w/o val eval
+        render-body (if implicit-render-body? (last args) (:render args-map))
+        _           (assert render-body "No (nil) render body provided")
+
+        ;; [x :x y x]
+        mount-bindings  (:let-mount  args-map)
+        render-bindings (:let-render args-map)
+
+        ;; [[x y] [:x x]] ; We actually just want the lval forms here
+        [ mount-lvals  _mount-rvals] (split-let-pairs  mount-bindings)
+        [render-lvals _render-rvals] (split-let-pairs render-bindings)
+
+        ;; Define our cfn lifecycle fns
+        ;; NB We try minimize code expansion size here (esp. gensyms)
+
+        argv
+        (if (seq params)
+          (into ['__] params) ; [__ x y z ...]
+          '__)
+
+        ?mount-rvals-fn
+        (when (seq mount-bindings)
+          `(fn [~'this-cmpt ~argv]
+             (binding-rvals ~mount-bindings)))
+
+        ?render-rvals-fn
+        (when (seq render-bindings)
+          `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals]
+             (binding-rvals ~render-bindings)))
+
+        render-fn
+        `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals ~render-lvals]
+           ~render-body)
+
+        ?post-render-fn
+        (when (have-arg? :post-render)
+          `(fn [~'this-cmpt ~argv ~'this-mounting? ~mount-lvals ~render-lvals]
+             ~(:post-render args-map)))
+
+        ?unmount-fn
+        (when (have-arg? :unmount)
+          `(fn [~'this-cmpt ~argv ~mount-lvals ~render-lvals]
+             ~(:unmount args-map)))]
+
+    `(~impl-constructor-fn
+      ~id
+      ~?mount-rvals-fn
+      ~?render-rvals-fn
+      ~render-fn
+      ~?post-render-fn
+      ~?unmount-fn)))
+
+(defmacro def-cmptfn [impl-constructor-fn sym id & sigs]
+  (let [[sym args] (enc/name-with-attrs sym sigs)]
+    `(def ~sym
+       (cmptfn
+         ~impl-constructor-fn
+         ~id ; ~(str *ns* "/" sym ":" (:line (meta &form) "?"))
+         ~@args))))
