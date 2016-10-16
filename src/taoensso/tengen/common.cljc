@@ -4,6 +4,8 @@
    #?(:clj  [taoensso.encore :as enc :refer        [have have?]])
    #?(:cljs [taoensso.encore :as enc :refer-macros [have have?]])))
 
+(enc/assert-min-encore-version [2 85 0])
+
 (defmacro binding-rvals
   "Evaluates and returns vector of rhs values for given bindings while
   preserving support for the usual let-binding facilities like destructuring,
