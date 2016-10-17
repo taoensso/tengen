@@ -35,7 +35,9 @@ As an alternative: **Tengen** gives you a small, simple, lightweight **component
   [first-name last-name] ; Args given to component (will rerender on changes)
 
   :let-mount ; Optional bindings established on each mount, available downstream
-  [norm-fn (fn [s] (str/upper-case (str s)))]
+  [norm-fn (fn [s] (str/upper-case (str s)))
+   _ (do ) ; Any side-effects on mount (fetch data from server, etc.)
+   ]
 
   :let-render ; Optional bindings established on each render, available downstream
   [norm-first-name (norm-fm first-name)
@@ -51,7 +53,7 @@ As an alternative: **Tengen** gives you a small, simple, lightweight **component
    (str norm-first-name " " norm-last-name)]
 
   :post-render (do) ; Optional: modify state atoms, etc. Have all above bindings.
-  :unmount     (do) ; Optional: any cleanup jobs, etc. Have all above bindings.
+  :unmount     (do) ; Optional: any cleanup jobs, etc.   Have all above bindings.
   )
 ```
 
@@ -112,22 +114,6 @@ As usual for Reagent, use [ref callbacks][]:
 ```
 
 You can also use `(reagent.core/dom-node this-cmpt)`, etc. - but would **strongly** recommend preferring ref callbacks in general since they're a lot more reliable and React's `findDOMNode` method is expected to become deprecated soon.
-
-#### How to do something on first mount?
-
-The `this-mounting?` magic binding will be truthy during (and only during) initial mount.
-
-For example, to do something to a node after it is mounted for the first time:
-
-```clojure
-(def-cmptfn my-example-component [arg1 arg2]
-  [:div
-   {:ref
-    (fn [node]
-      (when (and this-mounting? node)
-        ;; node is mounted in DOM for first time
-        ))}])
-```
 
 ## Contacting me / contributions
 
