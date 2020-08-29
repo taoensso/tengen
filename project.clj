@@ -11,13 +11,13 @@
                 *assert*             true}
 
   :dependencies
-  [[com.taoensso/encore "2.89.0"]]
+  [[com.taoensso/encore "2.126.2"]]
 
   :plugins
-  [[lein-pprint    "1.1.2"]
-   [lein-ancient   "0.6.10"]
-   [lein-codox     "0.10.3"]
-   [lein-cljsbuild "1.1.4"]]
+  [[lein-pprint    "1.3.2"]
+   [lein-ancient   "0.6.15"]
+   [lein-codox     "0.10.7"]
+   [lein-cljsbuild "1.1.8"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
