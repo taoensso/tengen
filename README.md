@@ -4,7 +4,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/tengen "1.0.0-RC1"]
+[com.taoensso/tengen "1.0.0"]
 ```
 
 > Please consider helping to [support my continued open-source Clojure/Script work]? 
@@ -69,7 +69,7 @@ These two small features can help cut out a _lot_ of unnecessary complexity when
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/tengen "1.0.0-RC1"]
+[com.taoensso/tengen "1.0.0"]
 ```
 
 And setup your namespace imports:
