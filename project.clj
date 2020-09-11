@@ -29,7 +29,8 @@
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
    :1.10     {:dependencies [[org.clojure/clojure "1.10.1"]]}
    :test     {:dependencies [[org.clojure/test.check "0.9.0"]]}
-   :dev      [:1.10 :test :server-jvm]}
+   :depr     {:jvm-opts ["-Dtaoensso.elide-deprecated=true"]}
+   :dev      [:1.10 :test :server-jvm :depr]}
 
   :cljsbuild
   {:test-commands
