@@ -9,9 +9,7 @@
 
 > See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
 
-# Tengen
-
-### Simple let-based [Reagent][] component fns for Clojure/Script
+# Tengen: let-based [Reagent][] components for Clojure/Script
 
 > **Ten-gen** (天元) is a Japanese [Go][] term for the central, and only unique point on the Go board.
 
@@ -65,7 +63,8 @@ These two small features can help cut out a _lot_ of unnecessary complexity when
 Add the necessary dependency to your project:
 
 ```clojure
-[com.taoensso/tengen "1.0.0"]
+Leiningen: [com.taoensso/tengen "1.0.0"] ; or
+deps.edn:   com.taoensso/tengen {:mvn/version "1.0.0"}
 ```
 
 And setup your namespace imports:
