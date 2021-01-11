@@ -12,7 +12,8 @@
      (:require
       [taoensso.encore        :as enc    :refer-macros [have have?]]
       [taoensso.tengen.common :as common :refer-macros []]
-      [reagent.core])))
+      [reagent.core]
+      [reagent.dom])))
 
 (comment
   (enc/declare-remote
@@ -62,7 +63,7 @@
                  (throw
                    (ex-info "Render error"
                      {:id id
-                      :path (reagent.core/component-path cmpt)
+                      :path (enc/oget cmpt "displayName")
                       :mounting? mounting?}
                      e))))))
 

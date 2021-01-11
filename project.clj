@@ -24,7 +24,7 @@
    :server-jvm {:jvm-opts ^:replace ["-server"]}
    :provided {:dependencies [[org.clojure/clojure       "1.10.1"]
                              [org.clojure/clojurescript "1.10.773"]
-                             [reagent                   "0.6.0"]]}
+                             [reagent                   "1.0.0"]]}
    :1.8      {:dependencies [[org.clojure/clojure "1.8.0"]]}
    :1.9      {:dependencies [[org.clojure/clojure "1.9.0"]]}
    :1.10     {:dependencies [[org.clojure/clojure "1.10.1"]]}
