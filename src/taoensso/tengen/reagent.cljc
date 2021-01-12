@@ -21,6 +21,17 @@
     reagent.core/argv))
 
 #?(:cljs
+   (defn- throw-cmptfn-error [cause lifecycle-id cmpt-id cmpt mounting?]
+     (throw
+       (ex-info
+         (str "Cmpfn error (" lifecycle-id ") in: " cmpt-id)
+         {:id cmpt-id
+          :path (enc/oget cmpt "displayName")
+          :mounting? mounting?
+          :lifecycle-id lifecycle-id}
+         cause))))
+
+#?(:cljs
    (defn -new-cmptfn
      "Returns a new Reagent component defined in terms of special cmptfn
      lifecycle fns. These in turn are defined in a special macro context to
@@ -45,28 +56,32 @@
                    ;; Executes (only once per instance) before 1st render body
                    ;; Equivalent to (old, deprecated) :component-will-mount
                    (when-let [f ?mount-rvals-fn]
-                     (let [rvals (f cmpt argv)]
+                     (let [rvals
+                           (try
+                             (f cmpt argv)
+                             (catch js/Error e
+                               (throw-cmptfn-error e :let-mount id cmpt mounting?)))]
+
                        (set! (.-cfnMountRvals cmpt) rvals)
                        (do                          rvals)))
 
                    (.-cfnMountRvals cmpt))]
 
-             (try
-               (let [render-rvals
-                     (when-let [f ?render-rvals-fn]
-                       (let [rvals (f cmpt argv mounting? mount-rvals)]
-                         (set! (.-cfnRenderRvals cmpt) rvals)
-                         rvals))]
+             (let [render-rvals
+                   (when-let [f ?render-rvals-fn]
+                     (let [rvals
+                           (try
+                             (f cmpt argv mounting? mount-rvals)
+                             (catch js/Error e
+                               (throw-cmptfn-error e :let-render id cmpt mounting?)))]
 
-                 (render-fn cmpt argv mounting? mount-rvals render-rvals))
+                       (set! (.-cfnRenderRvals cmpt) rvals)
+                       (do                           rvals)))]
 
-               (catch js/Error e
-                 (throw
-                   (ex-info "Render error"
-                     {:id id
-                      :path (enc/oget cmpt "displayName")
-                      :mounting? mounting?}
-                     e))))))
+               (try
+                 (render-fn cmpt argv mounting? mount-rvals render-rvals)
+                 (catch js/Error e
+                   (throw-cmptfn-error e :render id cmpt mounting?))))))
 
          ;; Invoked (only once per instance) after 1st rendering
          :component-did-mount
@@ -75,9 +90,14 @@
            (when-let [f ?post-render-fn]
              (let [argv (reagent.core/argv cmpt)
                    mounting? true]
-               (f cmpt argv mounting?
-                 (.-cfnMountRvals  cmpt)
-                 (.-cfnRenderRvals cmpt)))))
+
+               (try
+                 (f cmpt argv mounting?
+                   (.-cfnMountRvals  cmpt)
+                   (.-cfnRenderRvals cmpt))
+
+                 (catch js/Error e
+                   (throw-cmptfn-error e :post-render id cmpt mounting?))))))
 
          ;; Invoked after every rendering but the first
          :component-did-update
@@ -85,17 +105,27 @@
            (fn [cmpt old-argv]
              (let [argv (reagent.core/argv cmpt)
                    mounting? false]
-               (f cmpt argv mounting?
-                 (.-cfnMountRvals  cmpt)
-                 (.-cfnRenderRvals cmpt)))))
+
+               (try
+                 (f cmpt argv mounting?
+                   (.-cfnMountRvals  cmpt)
+                   (.-cfnRenderRvals cmpt))
+
+                 (catch js/Error e
+                   (throw-cmptfn-error e :post-render id cmpt mounting?))))))
 
          :component-will-unmount
          (when-let [f ?unmount-fn]
            (fn [cmpt]
              (let [argv (reagent.core/argv cmpt)]
-               (f cmpt argv
-                 (.-cfnMountRvals  cmpt)
-                 (.-cfnRenderRvals cmpt)))))))))
+
+               (try
+                 (f cmpt argv
+                   (.-cfnMountRvals  cmpt)
+                   (.-cfnRenderRvals cmpt))
+
+                 (catch js/Error e
+                   (throw-cmptfn-error e :unmount id cmpt false))))))))))
 
 (defmacro cmptfn
   "Reagent component fn util. Provides a sensible let-flow API for writing
