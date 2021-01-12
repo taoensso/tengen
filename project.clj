@@ -1,4 +1,4 @@
-(defproject com.taoensso/tengen "1.0.0"
+(defproject com.taoensso/tengen "1.1.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Simple let-based Reagent component fns for Clojure/Script"
   :url "https://github.com/ptaoussanis/tengen"

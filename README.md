@@ -4,7 +4,7 @@
 **[CHANGELOG]** | [API] | current [Break Version]:
 
 ```clojure
-[com.taoensso/tengen "1.0.0"]
+[com.taoensso/tengen "1.1.0"] ; See CHANGELOG for details
 ```
 
 > See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
@@ -63,8 +63,8 @@ These two small features can help cut out a _lot_ of unnecessary complexity when
 Add the necessary dependency to your project:
 
 ```clojure
-Leiningen: [com.taoensso/tengen "1.0.0"] ; or
-deps.edn:   com.taoensso/tengen {:mvn/version "1.0.0"}
+Leiningen: [com.taoensso/tengen "1.1.0"] ; or
+deps.edn:   com.taoensso/tengen {:mvn/version "1.1.0"}
 ```
 
 And setup your namespace imports:
