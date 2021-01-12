@@ -36,19 +36,20 @@
 
      (reagent.core/create-class
        (enc/assoc-some {}
-         ;; Invoked (only once per instance) before 1st rendering
-         :component-will-mount
-         (when-let [f ?mount-rvals-fn]
-           (fn [cmpt]
-             (let [argv  (reagent.core/argv cmpt)
-                   rvals (f cmpt argv)]
-               (set! (.-cfnMountRvals cmpt) rvals))))
-
          :render
          (fn [cmpt]
-           (let [argv        (reagent.core/argv cmpt)
-                 mounting?   (not (.-cfnMounted cmpt))
-                 mount-rvals (.-cfnMountRvals   cmpt)]
+           (let [argv      (reagent.core/argv cmpt)
+                 mounting? (not (.-cfnMounted cmpt))
+                 mount-rvals
+                 (if mounting?
+                   ;; Executes (only once per instance) before 1st render body
+                   ;; Equivalent to (old, deprecated) :component-will-mount
+                   (when-let [f ?mount-rvals-fn]
+                     (let [rvals (f cmpt argv)]
+                       (set! (.-cfnMountRvals cmpt) rvals)
+                       (do                          rvals)))
+
+                   (.-cfnMountRvals cmpt))]
 
              (try
                (let [render-rvals
@@ -77,9 +78,6 @@
                (f cmpt argv mounting?
                  (.-cfnMountRvals  cmpt)
                  (.-cfnRenderRvals cmpt)))))
-
-         ;; Invoked before every rendering but the first
-         ;; :component-will-update nil #_ (fn [cmpt new-argv])
 
          ;; Invoked after every rendering but the first
          :component-did-update
