@@ -2,18 +2,12 @@
   "Public API for use with Reagent,
   Ref. https://github.com/reagent-project/reagent."
   {:author "Peter Taoussanis (@ptaoussanis)"}
+  (:require
+   [taoensso.encore        :as enc :refer [have have?]]
+   [taoensso.tengen.common :as common]
 
-  #?(:clj
-     (:require
-      [taoensso.encore        :as enc :refer [have have?]]
-      [taoensso.tengen.common :as common]))
-
-  #?(:cljs
-     (:require
-      [taoensso.encore        :as enc    :refer-macros [have have?]]
-      [taoensso.tengen.common :as common :refer-macros []]
-      [reagent.core]
-      [reagent.dom])))
+   #?(:cljs [reagent.core])
+   #?(:cljs [reagent.dom])))
 
 (comment
   (enc/declare-remote
@@ -127,39 +121,41 @@
                  (catch js/Error e
                    (throw-cmptfn-error e :unmount id cmpt false))))))))))
 
-(defmacro cmptfn
-  "Reagent component fn util. Provides a sensible let-flow API for writing
-  simple, flexible Clj/s Reagent components.
+#?(:clj
+   (defmacro cmptfn
+     "Reagent component fn util. Provides a sensible let-flow API for writing
+     simple, flexible Clj/s Reagent components.
 
-  (cmptfn
-    id              ; Component identifier for debugging, error reporting, etc.
-    [x y]           ; Reagent args passed to component
-    :let-mount  []  ; Est. with each instance mount,  avail. downstream
-    :let-render []  ; Est. with each instance render, avail. downstream, pure!
-    :render      <body> ; Or just provide render body as final arg, pure!
-    :post-render <body> ; For DOM node setup/mutation
-    :unmount     <body> ; For DOM node teardown
-  )
+     (cmptfn
+       id              ; Component identifier for debugging, error reporting, etc.
+       [x y]           ; Reagent args passed to component
+       :let-mount  []  ; Est. with each instance mount,  avail. downstream
+       :let-render []  ; Est. with each instance render, avail. downstream, pure!
+       :render      <body> ; Or just provide render body as final arg, pure!
+       :post-render <body> ; For DOM node setup/mutation
+       :unmount     <body> ; For DOM node teardown
+     )
 
-  - Magic bindings: `this-cmpt`, `this-mounting?`.
-  - Nodes: `[<cmpt> {:ref (fn [node] _)}]` or `(enc/oget ev \"currentTarget\")`.
-  - Call Reagent components as:
-    * (<cmpt> <...>) - to get inlining.
-    * [<cmpt> <...>] - to get an intermediary Reagent component:
-      * Rerender-iff-args-change semantics.
-      * Can take ^{:key _} [<cmpt> <...>]."
-  [id params & args]
-  `(common/cmptfn taoensso.tengen.reagent/-new-cmptfn
-     ~id ~params ~@args))
+     - Magic bindings: `this-cmpt`, `this-mounting?`.
+     - Nodes: `[<cmpt> {:ref (fn [node] _)}]` or `(enc/oget ev \"currentTarget\")`.
+     - Call Reagent components as:
+       * (<cmpt> <...>) - to get inlining.
+       * [<cmpt> <...>] - to get an intermediary Reagent component:
+         * Rerender-iff-args-change semantics.
+         * Can take ^{:key _} [<cmpt> <...>]."
+     [id params & args]
+     `(common/cmptfn taoensso.tengen.reagent/-new-cmptfn
+        ~id ~params ~@args)))
 
-(defmacro def-cmptfn
-  "Defines a top-level Reagent component fn using `cmptfn`.
-  See the `cmptfn` docstring for more details on args, etc."
-  [sym & sigs]
-  `(common/def-cmptfn taoensso.tengen.reagent/-new-cmptfn
-     ~sym
-     ~(str *ns* "/" sym ":" (:line (meta &form) "?"))
-     ~@sigs))
+#?(:clj
+   (defmacro def-cmptfn
+     "Defines a top-level Reagent component fn using `cmptfn`.
+     See the `cmptfn` docstring for more details on args, etc."
+     [sym & sigs]
+     `(common/def-cmptfn taoensso.tengen.reagent/-new-cmptfn
+        ~sym
+        ~(str *ns* "/" sym ":" (:line (meta &form) "?"))
+        ~@sigs)))
 
 (comment
   (macroexpand                  '(cmptfn :id [x] [:div x]))
