@@ -1,4 +1,4 @@
-> This project uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
+This project uses Break Versioning (https://www.taoensso.com/break-versioning)
 
 ## v1.1.0 - 2021 Jan 12
 
@@ -7,7 +7,7 @@
 ```
 
 > This is a release to update dependencies. Should be **non-breaking**.  
-> See [here](https://github.com/ptaoussanis/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
+> See [here](https://github.com/taoensso/encore#recommended-steps-after-any-significant-dependency-update) for recommended steps when updating any Clojure/Script dependencies.
 
 **Changes** since `v1.0.0`:
 

@@ -1,27 +1,22 @@
-<a href="https://www.taoensso.com" title="More stuff by @ptaoussanis at www.taoensso.com">
-<img src="https://www.taoensso.com/taoensso-open-source.png" alt="Taoensso open-source" width="400"/></a>
+<a href="https://www.taoensso.com/clojure" title="More stuff by @ptaoussanis at www.taoensso.com"><img src="https://www.taoensso.com/open-source.png" alt="Taoensso open source" width="340"/></a><br/>
+[**API**][cljdoc] | [Support][GitHub issues] | Latest release: [on Clojars][Clojars URL]
 
-**[CHANGELOG]** | [API] | current [Break Version]:
+[![Clojars project][Clojars SVG]][Clojars URL]
+[![Clj tests][Clj tests SVG]][Clj tests URL]
+[![Cljs tests][Cljs tests SVG]][Cljs tests URL]
+[![Graal tests][Graal tests SVG]][Graal tests URL]
 
-```clojure
-[com.taoensso/tengen "1.1.0"] ; See CHANGELOG for details
-```
+# Tengen
 
-> See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
-
-# Tengen: let-based [Reagent][] components for Clojure/Script
+### Let-based [Reagent][] components for Clojure/Script
 
 > **Ten-gen** (天元) is a Japanese [Go][] term for the central, and only unique point on the Go board.
 
-[Reactjs][] has its pros and cons. Overall, it can be a good fit for web/native application development with Clojure/Script.
+Tengen is a small, lightweight component constructor that uses Lisp macros to make simple state flow through the React/Reagent component lifecycle easier to manage.
 
-But while React's [lifecycle methods] are flexible, using them correctly can be a little unintuitive.
+[React][] can be a good fit for web/native application development with Clojure/Script, but its [lifecycle methods][] can be unintuitive. In practice, it is easy to end up with atoms and core.async channels just to move simple values between mount, render, post-render, and unmount logic.
 
-One of the sharper edges I've found in practice, is the difficulty of **managing simple state flow** through the component lifecycle process. This can actually be harder to do in Clojure/Script than vanilla JS since Clojure intentionally discourages the kind of disposable mutable state that could be handy here.
-
-Net result: one sees a lot of weird contortions using atoms and core.async channels just to get the basic kind of data flow that you'll routinely need in a real application.
-
-As an alternative: **Tengen** gives you a small, simple, lightweight **component constructor** that uses the unique capabilities of Lisp macros to get this:
+Tengen gives you this:
 
 ```clojure
 (def-cmptfn my-example-component
@@ -30,33 +25,31 @@ As an alternative: **Tengen** gives you a small, simple, lightweight **component
 
   :let-mount ; Optional bindings established on each mount, available downstream
   [norm-fn (fn [s] (str/upper-case (str s)))
-   _ (do ) ; Any side-effects on mount (fetch data from server, etc.)
-   ]
+   _       (do)] ; Any side-effects on mount, etc.
 
   :let-render ; Optional bindings established on each render, available downstream
-  [norm-first-name (norm-fm first-name)
+  [norm-first-name (norm-fn first-name)
    norm-last-name  (norm-fn last-name)
 
-   ;;; We also have access to two magic symbols:
-   currently-mounting? this-mounting? ; Magic `this-mounting?` binding
-   current-cmpt        this-cmpt      ; Magic `this-cmpt` binding
-  ]
+   ;; Magic bindings
+   currently-mounting? this-mounting?
+   current-cmpt        this-cmpt]
 
-  :render ; Have all above bindings
+  :render ; Has all above bindings
   [:div "Full name is: "
    (str norm-first-name " " norm-last-name)]
 
-  :post-render (do) ; Optional: modify state atoms, etc. Have all above bindings.
-  :unmount     (do) ; Optional: any cleanup jobs, etc.   Have all above bindings.
+  :post-render (do) ; Optional: modify state atoms, etc. Has all above bindings
+  :unmount     (do) ; Optional: cleanup jobs, etc. Has all above bindings
   )
 ```
 
 That is:
 
- * `:let-mount` and `:let-render` bindings automatically flow down through all later lifecycle stages.
- * Magic `this-mounting?` and `this-cmpt` bindings are automatically available through all lifecycle stages.
+- `:let-mount` and `:let-render` bindings automatically flow down through all later lifecycle stages
+- Magic `this-mounting?` and `this-cmpt` bindings are automatically available through all lifecycle stages
 
-These two small features can help cut out a _lot_ of unnecessary complexity when writing real applications. In particular, you'll almost never need to touch or even be aware of the underlying React lifecycle methods.
+These two small features can cut out a lot of unnecessary complexity when writing real applications. In particular, you will rarely need to touch or even be aware of the underlying React lifecycle methods.
 
 ## Quickstart
 
@@ -67,36 +60,34 @@ Leiningen: [com.taoensso/tengen "1.1.0"] ; or
 deps.edn:   com.taoensso/tengen {:mvn/version "1.1.0"}
 ```
 
-And setup your namespace imports:
+And set up your namespace imports:
 
 ```clojure
 (ns my-cljs-ns
   (:require [taoensso.tengen.reagent :as tengen :refer-macros [cmptfn def-cmptfn]]))
 ```
 
-And you're good to go, you've already seen the entire API!
-
-Check the `cmptfn`, `def-cmptfn` docstrings for more info.
+That is the whole public API. See the `cmptfn` and `def-cmptfn` docstrings for more details.
 
 ## FAQ
 
-#### Why only Reagent support?
+### Why only Reagent support?
 
-Just the most familiar with Reagent, so started there. Haven't had time yet to look at extending to other libs, but should be trivial if there's demand (please ping to let me know).
+I was most familiar with Reagent, so started there. Extending to other libraries should be straightforward if there is demand.
 
-I'll note that [Rum][]'s design in particular looks quite pleasant.
+[Rum][]'s design in particular looks pleasant.
 
-#### How's the performance?
+### How is the performance?
 
-Tengen doesn't add any detectable overhead to your components, it's just a lightweight macro wrapper to Reagent's usual constructor.
+Tengen does not add any detectable overhead to your components. It is just a lightweight macro wrapper around Reagent's usual constructor.
 
-#### How does this affect my reactive atoms, etc.?
+### How does this affect reactive atoms, etc.?
 
-It doesn't, you can continue to use whatever higher-level state management strategies you prefer.
+It does not. You can continue to use whatever higher-level state management strategies you prefer.
 
-#### How to access DOM nodes?
+### How do I access DOM nodes?
 
-As usual for Reagent, use [ref callbacks][]:
+As usual for Reagent, prefer [ref callbacks][]:
 
 ```clojure
 (def-cmptfn my-example-component [arg1 arg2]
@@ -108,41 +99,49 @@ As usual for Reagent, use [ref callbacks][]:
         ))}])
 ```
 
-You can also use `(reagent.core/dom-node this-cmpt)`, etc. - but would **strongly** recommend preferring ref callbacks in general since they're a lot more reliable and React's `findDOMNode` method is expected to become deprecated soon.
+## Documentation
 
-## Contacting me / contributions
+- API reference via [cljdoc][cljdoc]
+- Support via [GitHub issues][GitHub issues]
 
-Please use the project's [GitHub issues page] for all questions, ideas, etc. **Pull requests welcome**. See the project's [GitHub contributors page] for a list of contributors.
+## Funding
 
-Otherwise, you can reach me at [Taoensso.com]. Happy hacking!
-
-\- [Peter Taoussanis]
+You can [help support][sponsor] continued work on this project and [others][my work], thank you!! 🙏
 
 ## License
 
-Distributed under the [EPL v1.0] \(same as Clojure).  
-Copyright &copy; 2016-2020 [Peter Taoussanis].
+Copyright &copy; 2016-2026 [Peter Taoussanis][].<br/>
+Licensed under [EPL 1.0](LICENSE) (same as Clojure).
 
-<!--- Standard links -->
-[Taoensso.com]: https://www.taoensso.com
+<!-- Common -->
+
+[GitHub releases]: ../../releases
+[GitHub issues]:   ../../issues
+[GitHub wiki]:     ../../wiki
+
 [Peter Taoussanis]: https://www.taoensso.com
-[@ptaoussanis]: https://www.taoensso.com
-[More by @ptaoussanis]: https://www.taoensso.com
-[Break Version]: https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md
+[sponsor]:          https://www.taoensso.com/sponsor
+[my work]:          https://www.taoensso.com/clojure-libraries
 
-<!--- Standard links (repo specific) -->
-[CHANGELOG]: https://github.com/ptaoussanis/tengen/releases
-[API]: http://ptaoussanis.github.io/tengen/
-[GitHub issues page]: https://github.com/ptaoussanis/tengen/issues
-[GitHub contributors page]: https://github.com/ptaoussanis/tengen/graphs/contributors
-[EPL v1.0]: https://raw.githubusercontent.com/ptaoussanis/tengen/master/LICENSE
-[Hero]: https://raw.githubusercontent.com/ptaoussanis/tengen/master/hero.png "Title"
+<!-- Project -->
 
-<!--- Unique links -->
+[cljdoc]: https://cljdoc.org/d/com.taoensso/tengen/CURRENT/api/taoensso.tengen.reagent
+
+[Clojars SVG]: https://img.shields.io/clojars/v/com.taoensso/tengen.svg
+[Clojars URL]: https://clojars.org/com.taoensso/tengen
+
+[Clj tests SVG]:  https://github.com/taoensso/tengen/actions/workflows/clj-tests.yml/badge.svg
+[Clj tests URL]:  https://github.com/taoensso/tengen/actions/workflows/clj-tests.yml
+[Cljs tests SVG]: https://github.com/taoensso/tengen/actions/workflows/cljs-tests.yml/badge.svg
+[Cljs tests URL]: https://github.com/taoensso/tengen/actions/workflows/cljs-tests.yml
+[Graal tests SVG]: https://github.com/taoensso/tengen/actions/workflows/graal-tests.yml/badge.svg
+[Graal tests URL]: https://github.com/taoensso/tengen/actions/workflows/graal-tests.yml
+
+<!-- Unique -->
+
 [Go]: https://en.wikipedia.org/wiki/Go_game
-[lifecycle methods]: https://facebook.github.io/react/docs/component-specs.html
-[Reactjs]: https://facebook.github.io/react/
+[lifecycle methods]: https://react.dev/reference/react/Component
+[React]: https://react.dev/
 [Reagent]: https://github.com/reagent-project/reagent
 [Rum]: https://github.com/tonsky/rum
-[Om]: https://github.com/omcljs/om
-[ref callbacks]: https://facebook.github.io/react/docs/more-about-refs.html#the-ref-callback-attribute
+[ref callbacks]: https://react.dev/learn/manipulating-the-dom-with-refs

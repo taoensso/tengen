@@ -3,7 +3,7 @@
   (:require
    [taoensso.encore :as enc :refer [have have?]]))
 
-(enc/assert-min-encore-version [2 85 0])
+(enc/assert-min-encore-version [3 31 0])
 
 #?(:clj
    (defmacro binding-rvals

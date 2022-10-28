@@ -1,0 +1,10 @@
+{:paths ["bb"]
+ :tasks
+ {graal-tests
+  {:doc "Run Graal native-image tests"
+   :requires ([graal-tests])
+   :task
+   (do
+     (graal-tests/uberjar)
+     (graal-tests/native-image)
+     (graal-tests/run-tests))}}}
