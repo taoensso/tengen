@@ -1,13 +1,13 @@
 <a href="https://www.taoensso.com" title="More stuff by @ptaoussanis at www.taoensso.com">
-<img src="https://www.taoensso.com/taoensso-open-source.png" alt="Taoensso open-source" width="400"/></a>
+<img src="https://www.taoensso.com/taoensso-open-source.png" alt="Taoensso open-source" width="350"/></a>
 
-**[CHANGELOG]** | [API] | current [Break Version]:
+**[CHANGELOG][]** | [API][] | current [Break Version][]:
 
 ```clojure
-[com.taoensso/tengen "1.1.0"] ; See CHANGELOG for details
+[com.taoensso/tengen "1.1.0"] ; Mature/stable (basically "done")
 ```
 
-> See [here](https://taoensso.com/clojure/backers) if you're interested in helping support my open-source work, thanks! - Peter Taoussanis
+> See [here][backers] if to help support my open-source work, thanks! - [Peter Taoussanis][Taoensso.com]
 
 # Tengen: let-based [Reagent][] components for Clojure/Script
 
@@ -15,7 +15,7 @@
 
 [Reactjs][] has its pros and cons. Overall, it can be a good fit for web/native application development with Clojure/Script.
 
-But while React's [lifecycle methods] are flexible, using them correctly can be a little unintuitive.
+But while React's [lifecycle methods][] are flexible, using them correctly can be a little unintuitive.
 
 One of the sharper edges I've found in practice, is the difficulty of **managing simple state flow** through the component lifecycle process. This can actually be harder to do in Clojure/Script than vanilla JS since Clojure intentionally discourages the kind of disposable mutable state that could be handy here.
 
@@ -112,29 +112,27 @@ You can also use `(reagent.core/dom-node this-cmpt)`, etc. - but would **strongl
 
 ## Contacting me / contributions
 
-Please use the project's [GitHub issues page] for all questions, ideas, etc. **Pull requests welcome**. See the project's [GitHub contributors page] for a list of contributors.
+Please use the project's [GitHub issues page][] for all questions, ideas, etc. **Pull requests welcome**. See the project's [GitHub contributors page][] for a list of contributors.
 
-Otherwise, you can reach me at [Taoensso.com]. Happy hacking!
+Otherwise, you can reach me at [Taoensso.com][]. Happy hacking!
 
-\- [Peter Taoussanis]
+\- [Peter Taoussanis][Taoensso.com]
 
 ## License
 
-Distributed under the [EPL v1.0] \(same as Clojure).  
-Copyright &copy; 2016-2020 [Peter Taoussanis].
+Distributed under the [EPL v1.0][] \(same as Clojure).  
+Copyright &copy; 2016-2022 [Peter Taoussanis][Taoensso.com].
 
 <!--- Standard links -->
 [Taoensso.com]: https://www.taoensso.com
-[Peter Taoussanis]: https://www.taoensso.com
-[@ptaoussanis]: https://www.taoensso.com
-[More by @ptaoussanis]: https://www.taoensso.com
-[Break Version]: https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md
+[Break Version]: https://github.com/taoensso/encore/blob/master/BREAK-VERSIONING.md
+[backers]: https://taoensso.com/clojure/backers
 
 <!--- Standard links (repo specific) -->
-[CHANGELOG]: https://github.com/ptaoussanis/tengen/releases
-[API]: http://ptaoussanis.github.io/tengen/
-[GitHub issues page]: https://github.com/ptaoussanis/tengen/issues
-[GitHub contributors page]: https://github.com/ptaoussanis/tengen/graphs/contributors
+[CHANGELOG]: https://github.com/taoensso/tengen/releases
+[API]: http://taoensso.github.io/tengen/
+[GitHub issues page]: https://github.com/taoensso/tengen/issues
+[GitHub contributors page]: https://github.com/taoensso/tengen/graphs/contributors
 [EPL v1.0]: https://raw.githubusercontent.com/ptaoussanis/tengen/master/LICENSE
 [Hero]: https://raw.githubusercontent.com/ptaoussanis/tengen/master/hero.png "Title"
 
