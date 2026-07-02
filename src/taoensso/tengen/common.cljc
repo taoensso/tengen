@@ -1,9 +1,10 @@
 (ns taoensso.tengen.common
   "Private common implementation details."
   (:require
-   [taoensso.encore :as enc :refer [have have?]]))
+   [taoensso.encore :as enc]
+   #?(:clj [taoensso.truss :as truss])))
 
-(enc/assert-min-encore-version [3 31 0])
+(enc/assert-min-encore-version [3 168 0])
 
 #?(:clj
    (defmacro binding-rvals
@@ -72,8 +73,8 @@
              (hash-map-with-unique-ks (butlast args))
              (hash-map-with-unique-ks          args))
 
-           _ (have? [:ks<= #{:let-mount :let-render :render
-                             :post-render :unmount}]
+           _ (truss/have? [:ks<= #{:let-mount :let-render :render
+                                   :post-render :unmount}]
                args-map)
 
            _ (when implicit-render-body?

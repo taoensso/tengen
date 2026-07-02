@@ -3,7 +3,7 @@
   Ref. https://github.com/reagent-project/reagent."
   {:author "Peter Taoussanis (@ptaoussanis)"}
   (:require
-   [taoensso.encore        :as enc :refer [have have?]]
+   [taoensso.encore        :as enc]
    [taoensso.tengen.common :as common]
 
    #?(:cljs [reagent.core])

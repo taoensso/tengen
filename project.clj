@@ -10,18 +10,18 @@
   :test-paths ["test" #_"src"]
 
   :dependencies
-  [[com.taoensso/encore "3.31.0"]]
+  [[com.taoensso/encore "3.168.0"]
+   [com.taoensso/truss  "2.3.0"]]
 
   :profiles
   {;; :default [:base :system :user :provided :dev]
    :provided {:injections   [(println "Lein profile: :provided")]
-              :dependencies [[reagent                   "1.1.1"]
-                             [org.clojure/clojurescript "1.11.60"]
-                             [org.clojure/clojure       "1.11.1"]]}
-   :c1.12    {:dependencies [[org.clojure/clojure       "1.12.0-alpha9"]]}
-   :c1.11    {:dependencies [[org.clojure/clojure       "1.11.1"]]}
+              :dependencies [[reagent                   "2.0.1"]
+                             [org.clojure/clojurescript "1.12.145"]
+                             [org.clojure/clojure       "1.12.5"]]}
+   :c1.12    {:dependencies [[org.clojure/clojure       "1.12.5"]]}
+   :c1.11    {:dependencies [[org.clojure/clojure       "1.11.4"]]}
    :c1.10    {:dependencies [[org.clojure/clojure       "1.10.3"]]}
-   :c1.9     {:dependencies [[org.clojure/clojure       "1.9.0"]]}
 
    :graal-tests
    {:injections   [(println "Lein profile: :graal-tests")]
@@ -48,14 +48,14 @@
      *unchecked-math*     false #_:warn-on-boxed}
 
     :dependencies
-    [[org.clojure/test.check "1.1.1"]
-     [cljsjs/react           "17.0.2-0"]
-     [cljsjs/react-dom       "17.0.2-0"]
-     [reagent                "1.1.1"]]
+    [[org.clojure/test.check "1.1.3"]
+     [cljsjs/react           "18.3.1-1"]
+     [cljsjs/react-dom       "18.3.1-1"]
+     [reagent                "2.0.1"]]
 
     :plugins
     [[lein-pprint    "1.3.2"]
-     [lein-ancient   "0.7.0"]
+     [lein-ancient   "1.0.0"]
      [lein-cljsbuild "1.1.8"]]}}
 
   :cljsbuild
@@ -80,6 +80,6 @@
    "build-once" ["do" ["clean"] ["cljsbuild" "once"]]
    "deploy-lib" ["do" ["build-once"] ["deploy" "clojars"] ["install"]]
 
-   "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10:+c1.9" "test"]
+   "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10" "test"]
    "test-cljs"  ["with-profile" "+c1.12" "cljsbuild"   "test"]
    "test-all"   ["do" ["clean"] ["test-clj"] ["test-cljs"]]})
