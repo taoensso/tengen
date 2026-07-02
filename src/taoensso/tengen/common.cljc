@@ -74,7 +74,7 @@
              (hash-map-with-unique-ks          args))
 
            _ (truss/have? [:ks<= #{:let-mount :let-render :render
-                                   :post-render :unmount}]
+                                   :post-render :unmount :catch}]
                args-map)
 
            _ (when implicit-render-body?
@@ -123,7 +123,12 @@
            ?unmount-fn
            (when (have-arg? :unmount)
              `(fn [~'this-cmpt ~argv ~mount-lvals ~render-lvals]
-                ~(:unmount args-map)))]
+                ~(:unmount args-map)))
+
+           ?catch-fn
+           (when (have-arg? :catch)
+             `(fn [~'this-cmpt ~argv ~'this-error ~mount-lvals ~render-lvals]
+                ~(:catch args-map)))]
 
        `(~impl-constructor-fn
          ~id
@@ -131,7 +136,8 @@
          ~?render-rvals-fn
          ~render-fn
          ~?post-render-fn
-         ~?unmount-fn))))
+         ~?unmount-fn
+         ~?catch-fn))))
 
 #?(:clj
    (defmacro def-cmptfn [impl-constructor-fn sym id & sigs]

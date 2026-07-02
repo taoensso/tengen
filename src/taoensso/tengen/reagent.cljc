@@ -44,6 +44,15 @@
      (set! (.-cfnMountRvals     cmpt) nil)
      (set! (.-cfnMountRvalsSet  cmpt) nil)
      (set! (.-cfnRenderRvals    cmpt) nil)
+     (set! (.-cfnErrorArgv      cmpt) nil)
+     (set! (.-cfnErrorArgvSet   cmpt) nil)
+     nil))
+
+#?(:cljs
+   (defn- reset-cmptfn-error! [^js cmpt]
+     (set! (.-cfnErrorArgv    cmpt) nil)
+     (set! (.-cfnErrorArgvSet cmpt) nil)
+     (.setState cmpt #js {:cfnError nil, :cfnErrorSet false})
      nil))
 
 #?(:cljs
@@ -69,11 +78,21 @@
       render-fn        ; (fn [cmpt argv mounting? mount-rvals render-rvals])
       ?post-render-fn  ; (fn [cmpt argv mounting? mount-rvals render-rvals])
       ?unmount-fn      ; (fn [cmpt argv           mount-rvals render-rvals])
+      ?catch-fn        ; (fn [cmpt argv error     mount-rvals render-rvals])
       ]
 
      (reagent.core/create-class
        (enc/assoc-some {}
          :display-name (str id)
+
+         :get-initial-state
+         (when ?catch-fn
+           (fn [_cmpt] #js {}))
+
+         :get-derived-state-from-error
+         (when ?catch-fn
+           (fn [error]
+             #js {:cfnError error, :cfnErrorSet true}))
 
          :render
          (fn [^js cmpt]
@@ -98,30 +117,42 @@
 
                    (.-cfnMountRvals cmpt))]
 
-             (let [render-rvals
-                   (when-let [f ?render-rvals-fn]
-                     (let [rvals
-                           (try
-                             (f cmpt argv mounting? mount-rvals)
-                             (catch :default e
-                               (throw-cmptfn-error e :let-render id cmpt mounting?)))]
-
-                       (set! (.-cfnRenderRvals cmpt) rvals)
-                       (do                           rvals)))]
-
+             (if (and ?catch-fn
+                   (enc/oget (.-state cmpt) "cfnErrorSet"))
                (try
-                 (render-fn cmpt argv mounting? mount-rvals render-rvals)
+                 (?catch-fn cmpt argv
+                   (enc/oget (.-state cmpt) "cfnError")
+                   (.-cfnMountRvals  cmpt)
+                   (.-cfnRenderRvals cmpt))
                  (catch :default e
-                   (throw-cmptfn-error e :render id cmpt mounting?))))))
+                   (throw-cmptfn-error e :catch id cmpt mounting?)))
+
+               (let [render-rvals
+                     (when-let [f ?render-rvals-fn]
+                       (let [rvals
+                             (try
+                               (f cmpt argv mounting? mount-rvals)
+                               (catch :default e
+                                 (throw-cmptfn-error e :let-render id cmpt mounting?)))]
+
+                         (set! (.-cfnRenderRvals cmpt) rvals)
+                         (do                           rvals)))]
+
+                 (try
+                   (render-fn cmpt argv mounting? mount-rvals render-rvals)
+                   (catch :default e
+                     (throw-cmptfn-error e :render id cmpt mounting?)))))))
 
          ;; Invoked (only once per instance) after 1st rendering
          :component-did-mount
          (fn [^js cmpt]
            (cancel-cmptfn-rvals-clear! cmpt)
            (set! (.-cfnMounted cmpt) true)
-           (when-let [f ?post-render-fn]
+           (when (and ?post-render-fn
+                   (not (enc/oget (.-state cmpt) "cfnErrorSet")))
              (let [argv (reagent.core/argv cmpt)
-                   mounting? true]
+                   mounting? true
+                   f ?post-render-fn]
 
                (try
                  (f cmpt argv mounting?
@@ -130,21 +161,41 @@
 
                  (catch :default e
                    (throw-cmptfn-error e :post-render id cmpt mounting?))))))
+
+         :UNSAFE_component-will-receive-props
+         (when ?catch-fn
+           (fn [^js cmpt new-argv]
+             ;; Reagent's getDerivedStateFromProps wrapper sees only props,
+             ;; not full argv; use this legacy hook to reset before next render.
+             (when (and (enc/oget (.-state cmpt) "cfnErrorSet")
+                     (.-cfnErrorArgvSet cmpt)
+                     (not= new-argv (.-cfnErrorArgv cmpt)))
+               (reset-cmptfn-error! cmpt))))
 
          ;; Invoked after every rendering but the first
          :component-did-update
-         (when-let [f ?post-render-fn]
-           (fn [^js cmpt old-argv]
-             (let [argv (reagent.core/argv cmpt)
+         (when ?post-render-fn
+           (fn [^js cmpt _old-argv]
+             (let [argv      (reagent.core/argv cmpt)
+                   state     (.-state cmpt)
+                   errored?  (enc/oget state "cfnErrorSet")
                    mounting? false]
 
-               (try
-                 (f cmpt argv mounting?
-                   (.-cfnMountRvals  cmpt)
-                   (.-cfnRenderRvals cmpt))
+               (when (and ?post-render-fn (not errored?))
+                 (let [f ?post-render-fn]
+                   (try
+                     (f cmpt argv mounting?
+                       (.-cfnMountRvals  cmpt)
+                       (.-cfnRenderRvals cmpt))
 
-                 (catch :default e
-                   (throw-cmptfn-error e :post-render id cmpt mounting?))))))
+                     (catch :default e
+                       (throw-cmptfn-error e :post-render id cmpt mounting?))))))))
+
+         :component-did-catch
+         (when ?catch-fn
+           (fn [^js cmpt _error _info]
+             (set! (.-cfnErrorArgv cmpt) (reagent.core/argv cmpt))
+             (set! (.-cfnErrorArgvSet cmpt) true)))
 
          :component-will-unmount
          (fn [^js cmpt]
@@ -175,9 +226,11 @@
        :render      <body> ; Or just provide render body as final arg, pure!
        :post-render <body> ; For DOM node setup/mutation
        :unmount     <body> ; For DOM node teardown
+       :catch       <body> ; Experimental fallback for descendant errors, pure!
      )
 
-     - Magic bindings: `this-cmpt`, `this-mounting?`.
+     - Magic bindings: `this-cmpt`; `this-mounting?` in `:let-render`,
+       `:render`, and `:post-render`; `this-error` only in `:catch`.
      - Nodes: `[<cmpt> {:ref (fn [node] _)}]` or `(enc/oget ev \"currentTarget\")`.
      - Call Reagent components as:
        * (<cmpt> <...>) - to get inlining.
@@ -192,6 +245,12 @@
        * React StrictMode remounts preserve lifecycle values for the reused instance.
        * StrictMode remounts may run `:post-render` with `this-mounting?` true
          while preserving `:let-render` values from the prior render.
+       * Experimental: `:catch` defines a React error boundary fallback body for
+         descendant render/lifecycle errors. It receives component args,
+         `:let-mount` values, last successful `:let-render` values, and
+         `this-error`. It resets automatically on argv change.
+       * `:catch` uses `UNSAFE_componentWillReceiveProps` for argv-change reset;
+         React StrictMode dev builds may log a warning. Production is unaffected.
        * Lifecycle errors include component/lifecycle ex-data; non-`js/Error`
          throws are preserved under `:thrown`."
      [id params & args]

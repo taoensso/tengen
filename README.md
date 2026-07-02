@@ -115,6 +115,29 @@ As usual for Reagent, prefer [ref callbacks][]. When lifecycle code needs the no
 
 If you need React 18 compatibility, clear the atom explicitly in `:unmount`.
 
+### How do I catch render errors?
+
+Experimental, feedback welcome: `:catch` defines a React error-boundary fallback for descendant render/lifecycle errors.
+
+```clojure
+(def-cmptfn my-boundary [user-id]
+  :render
+  [:section [my-risky-child user-id]]
+
+  :catch
+  [:div.error
+   "Could not render user "
+   user-id
+   ": "
+   (ex-message this-error)])
+```
+
+The fallback body receives component args, `:let-mount` values, the last successful `:let-render` values, and `this-error`. Keep it pure; React may render fallback UI more than once before committing. `:post-render` is skipped for fallback commits. When a Tengen descendant throws, `(ex-data this-error)` includes the component id, lifecycle id, mount status, and original non-Error thrown value when relevant.
+
+Like React error boundaries generally, `:catch` catches descendant errors only. It does not catch errors in the same component's own body, event handlers, async callbacks, or server-side rendering. Change the component args to retry automatically; use `^{:key ...}` to force a full remount.
+
+In React StrictMode dev builds, `:catch` currently uses an `UNSAFE_componentWillReceiveProps` hook for argv-change reset, so React may log a dev-only warning. Production behavior is unaffected.
+
 ## Documentation
 
 - API reference via [cljdoc][cljdoc]

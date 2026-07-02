@@ -48,6 +48,10 @@
              ^js cmpt  (new-test-cmpt [::component "Ada"])]
 
          (is (= (str ::lifecycle) (:display-name class-map)))
+         (is (not (contains? class-map :get-initial-state)))
+         (is (not (contains? class-map :get-derived-state-from-error)))
+         (is (not (contains? class-map :component-did-catch)))
+         (is (not (contains? class-map :UNSAFE_component-will-receive-props)))
 
          (is (= [:div "Ada/mount-Ada/render-Ada"] ((:render class-map) cmpt)))
          (is (= [:div "Ada/mount-Ada/render-Ada"] ((:render class-map) cmpt)))
@@ -139,6 +143,77 @@
              (is (= :render (:lifecycle-id data)))
              (is (= "boom" (:thrown data)))
              (is (true? (:mounting? data)))))))))
+
+#?(:cljs
+   (deftest _reagent-error-boundary
+     (let [events_    (atom [])
+           states_    (atom [])
+           class-map_ (atom nil)]
+
+       (with-redefs [reagent/create-class (fn [class-map] (reset! class-map_ class-map) ::component-class)]
+         (is (= ::component-class
+                (cmptfn ::boundary [x]
+                  :let-mount [mount-val (str "mount-" x)]
+
+                  :let-render
+                  [render-val (str "render-" x)]
+
+                  :render
+                  (do
+                    (swap! events_ conj [:render x mount-val render-val])
+                    [:div (str x "/" mount-val "/" render-val)])
+
+                  :post-render (swap! events_ conj [:post-render x])
+
+                  :catch
+                  (do
+                    (swap! events_ conj [:catch x this-error mount-val render-val])
+                    [:div (str "caught-" x "/" this-error "/" mount-val "/" render-val)])
+
+                  :unmount (swap! events_ conj [:unmount x mount-val render-val])))))
+
+       (let [class-map @class-map_
+             ^js cmpt  (new-test-cmpt [::component "Ada"])]
+
+         (set! (.-state cmpt) (js-obj))
+         (set! (.-setState cmpt)
+           (fn [state]
+             (swap! states_ conj state)
+             (set! (.-state cmpt) state)))
+
+         (is (fn? (:get-initial-state class-map)))
+         (is (fn? (:get-derived-state-from-error class-map)))
+         (is (fn? (:component-did-catch class-map)))
+         (is (fn? (:UNSAFE_component-will-receive-props class-map)))
+
+         (let [^js state ((:get-derived-state-from-error class-map) "boom")]
+           (is (= "boom" (.-cfnError state)))
+           (is (true? (.-cfnErrorSet state))))
+
+         (is (= [:div "Ada/mount-Ada/render-Ada"] ((:render class-map) cmpt)))
+
+         (set! (.-state cmpt) #js {:cfnError "boom" :cfnErrorSet true})
+         (is (= [:div "caught-Ada/boom/mount-Ada/render-Ada"] ((:render class-map) cmpt)))
+
+         ((:component-did-mount class-map) cmpt)
+         (is (= [[:render "Ada" "mount-Ada" "render-Ada"]
+                 [:catch "Ada" "boom" "mount-Ada" "render-Ada"]]
+                @events_))
+
+         ((:component-did-catch class-map) cmpt "boom" nil)
+         (is (= [::component "Ada"] (.-cfnErrorArgv cmpt)))
+         (is (true? (.-cfnErrorArgvSet cmpt)))
+
+         ((:UNSAFE_component-will-receive-props class-map) cmpt [::component "Ada"])
+         (is (empty? @states_))
+
+         ((:UNSAFE_component-will-receive-props class-map) cmpt [::component "Grace"])
+         (is (= 1 (count @states_)))
+         (let [^js reset-state (first @states_)]
+           (is (nil? (.-cfnError reset-state)))
+           (is (false? (.-cfnErrorSet reset-state)))
+           (is (nil? (.-cfnErrorArgv cmpt)))
+           (is (nil? (.-cfnErrorArgvSet cmpt))))))))
 
 ;;;;
 

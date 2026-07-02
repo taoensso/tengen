@@ -23,7 +23,7 @@
       (partition 2 kvs))))
 
 (defn- cmptfn-body-node [args]
-  (let [{:keys [let-mount let-render render post-render unmount]}
+  (let [{:keys [let-mount let-render render post-render unmount catch]}
         (parse-cmptfn-args args)
 
         let-mount  (or let-mount  (hooks/vector-node []))
@@ -31,7 +31,13 @@
         body       (cond-> []
                      render      (conj render)
                      post-render (conj post-render)
-                     unmount     (conj unmount))]
+                     unmount     (conj unmount))
+        catch-body (when catch
+                     (hooks/list-node
+                       [(hooks/token-node 'let)
+                        (hooks/vector-node
+                          [(hooks/token-node 'this-error) (hooks/token-node nil)])
+                        catch]))]
 
     (hooks/list-node
       [(hooks/token-node 'let)
@@ -48,7 +54,7 @@
              (hooks/list-node
                [(hooks/token-node 'let)
                 let-render
-                (do-node body)])])])])))
+                (do-node (cond-> body catch-body (conj catch-body)))])])])])))
 
 (defn cmptfn [{:keys [node]}]
   (let [[_macro _id params & args] (:children node)]
