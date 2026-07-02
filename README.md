@@ -25,7 +25,7 @@ Tengen gives you this:
 
   :let-mount ; Optional bindings established on each mount, available downstream
   [norm-fn (fn [s] (str/upper-case (str s)))
-   _       (do)] ; Any side-effects on mount, etc.
+   node_   (atom nil)] ; Cheap/idempotent render-phase setup
 
   :let-render ; Optional bindings established on each render, available downstream
   [norm-first-name (norm-fn first-name)
@@ -50,6 +50,8 @@ That is:
 - Magic `this-mounting?` and `this-cmpt` bindings are automatically available through all lifecycle stages
 
 These two small features can cut out a lot of unnecessary complexity when writing real applications. In particular, you will rarely need to touch or even be aware of the underlying React lifecycle methods.
+
+Note that `:let-mount` runs during React's render phase. Keep it cheap and idempotent: atoms, functions, and derived values are appropriate. DOM setup, subscriptions, and resource acquisition that need guaranteed cleanup belong in `:post-render` guarded by `this-mounting?`, with cleanup in `:unmount` or a React 19 ref cleanup function.
 
 ## Quickstart
 
@@ -87,17 +89,31 @@ It does not. You can continue to use whatever higher-level state management stra
 
 ### How do I access DOM nodes?
 
-As usual for Reagent, prefer [ref callbacks][]:
+As usual for Reagent, prefer [ref callbacks][]. When lifecycle code needs the node, keep it in a value established by `:let-mount`. With React 19+, a ref callback can return its cleanup function:
 
 ```clojure
 (def-cmptfn my-example-component [arg1 arg2]
+  :let-mount
+  [node_ (atom nil)
+   ref-fn
+   (fn [node]
+     (reset! node_ node)
+     (when node
+       (fn [] (reset! node_ nil))))]
+
+  :render
   [:div
-   {:ref
-    (fn [node]
-      (when node
-        ;; node is mounted in DOM
-        ))}])
+   {:ref ref-fn}
+   arg1
+   arg2]
+
+  :post-render
+  (when-let [node @node_]
+    ;; node is mounted in DOM
+    ))
 ```
+
+If you need React 18 compatibility, clear the atom explicitly in `:unmount`.
 
 ## Documentation
 
