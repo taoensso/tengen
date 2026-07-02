@@ -1,4 +1,4 @@
-(defproject com.taoensso/tengen "1.1.0"
+(defproject com.taoensso/tengen "1.2.0"
   :author "Peter Taoussanis <https://www.taoensso.com>"
   :description "Simple React component DSL for Clojure/Script"
   :url "https://www.taoensso.com/tengen"

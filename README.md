@@ -58,8 +58,8 @@ Note that `:let-mount` runs during React's render phase. Keep it cheap and idemp
 Add the necessary dependency to your project:
 
 ```clojure
-Leiningen: [com.taoensso/tengen "1.1.0"] ; or
-deps.edn:   com.taoensso/tengen {:mvn/version "1.1.0"}
+Leiningen: [com.taoensso/tengen "1.2.0"] ; or
+deps.edn:   com.taoensso/tengen {:mvn/version "1.2.0"}
 ```
 
 And set up your namespace imports:
@@ -70,6 +70,12 @@ And set up your namespace imports:
 ```
 
 That is the whole public API. See the `cmptfn` and `def-cmptfn` docstrings for more details.
+
+## Compatibility
+
+Tengen 1.2+ targets Reagent 2.x and npm React/ReactDOM. The test suite includes a React 19 StrictMode smoke test via shadow-cljs/jsdom.
+
+Tengen avoids removed DOM lookup helpers like `findDOMNode`/`reagent.dom/dom-node`; use React ref callbacks for DOM node access.
 
 ## FAQ
 
