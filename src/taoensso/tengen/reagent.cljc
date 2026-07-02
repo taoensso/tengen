@@ -6,8 +6,7 @@
    [taoensso.encore        :as enc]
    [taoensso.tengen.common :as common]
 
-   #?(:cljs [reagent.core])
-   #?(:cljs [reagent.dom])))
+   #?(:cljs [reagent.core])))
 
 (comment
   (enc/declare-remote
@@ -15,15 +14,48 @@
     reagent.core/argv))
 
 #?(:cljs
-   (defn- throw-cmptfn-error [cause lifecycle-id cmpt-id cmpt mounting?]
-     (throw
-       (ex-info
-         (str "Cmpfn error (" lifecycle-id ") in: " cmpt-id)
-         {:id cmpt-id
-          :path (enc/oget cmpt "displayName")
-          :mounting? mounting?
-          :lifecycle-id lifecycle-id}
-         cause))))
+   (defn- throw-cmptfn-error [cause lifecycle-id cmpt-id ^js cmpt mounting?]
+     (let [error-cause (when (instance? js/Error cause) cause)]
+       (throw
+         (ex-info
+           (str "Cmpfn error (" lifecycle-id ") in: " cmpt-id)
+           (enc/assoc-some
+             {:id cmpt-id
+              :path
+              (or (enc/oget-in cmpt ["constructor" "displayName"])
+                (enc/oget cmpt "displayName")
+                (str cmpt-id))
+              :mounting? mounting?
+              :lifecycle-id lifecycle-id}
+             :thrown (when-not error-cause cause))
+           error-cause)))))
+
+#?(:cljs
+   (defn- cancel-cmptfn-rvals-clear! [^js cmpt]
+     (when-let [tid (.-cfnClearRvalsTimeout cmpt)]
+       (js/clearTimeout tid)
+       (set! (.-cfnClearRvalsTimeout cmpt) nil))
+     nil))
+
+#?(:cljs
+   (defn- clear-cmptfn-rvals! [^js cmpt]
+     (cancel-cmptfn-rvals-clear! cmpt)
+     (set! (.-cfnMounted        cmpt) nil)
+     (set! (.-cfnMountRvals     cmpt) nil)
+     (set! (.-cfnMountRvalsSet  cmpt) nil)
+     (set! (.-cfnRenderRvals    cmpt) nil)
+     nil))
+
+#?(:cljs
+   (defn- schedule-cmptfn-rvals-clear! [^js cmpt]
+     (cancel-cmptfn-rvals-clear! cmpt)
+     (set! (.-cfnClearRvalsTimeout cmpt)
+       (js/setTimeout
+         (fn []
+           (set! (.-cfnClearRvalsTimeout cmpt) nil)
+           (clear-cmptfn-rvals! cmpt))
+         0))
+     nil))
 
 #?(:cljs
    (defn -new-cmptfn
@@ -41,23 +73,28 @@
 
      (reagent.core/create-class
        (enc/assoc-some {}
+         :display-name (str id)
+
          :render
-         (fn [cmpt]
+         (fn [^js cmpt]
            (let [argv      (reagent.core/argv cmpt)
                  mounting? (not (.-cfnMounted cmpt))
                  mount-rvals
                  (if mounting?
-                   ;; Executes (only once per instance) before 1st render body
+                   ;; Executes once per instance before 1st render body
                    ;; Equivalent to (old, deprecated) :component-will-mount
-                   (when-let [f ?mount-rvals-fn]
-                     (let [rvals
-                           (try
-                             (f cmpt argv)
-                             (catch js/Error e
-                               (throw-cmptfn-error e :let-mount id cmpt mounting?)))]
+                   (if (.-cfnMountRvalsSet cmpt)
+                     (.-cfnMountRvals cmpt)
+                     (when-let [f ?mount-rvals-fn]
+                       (let [rvals
+                             (try
+                               (f cmpt argv)
+                               (catch :default e
+                                 (throw-cmptfn-error e :let-mount id cmpt mounting?)))]
 
-                       (set! (.-cfnMountRvals cmpt) rvals)
-                       (do                          rvals)))
+                         (set! (.-cfnMountRvals    cmpt) rvals)
+                         (set! (.-cfnMountRvalsSet cmpt) true)
+                         (do                             rvals))))
 
                    (.-cfnMountRvals cmpt))]
 
@@ -66,7 +103,7 @@
                      (let [rvals
                            (try
                              (f cmpt argv mounting? mount-rvals)
-                             (catch js/Error e
+                             (catch :default e
                                (throw-cmptfn-error e :let-render id cmpt mounting?)))]
 
                        (set! (.-cfnRenderRvals cmpt) rvals)
@@ -74,12 +111,13 @@
 
                (try
                  (render-fn cmpt argv mounting? mount-rvals render-rvals)
-                 (catch js/Error e
+                 (catch :default e
                    (throw-cmptfn-error e :render id cmpt mounting?))))))
 
          ;; Invoked (only once per instance) after 1st rendering
          :component-did-mount
-         (fn [cmpt]
+         (fn [^js cmpt]
+           (cancel-cmptfn-rvals-clear! cmpt)
            (set! (.-cfnMounted cmpt) true)
            (when-let [f ?post-render-fn]
              (let [argv (reagent.core/argv cmpt)
@@ -90,13 +128,13 @@
                    (.-cfnMountRvals  cmpt)
                    (.-cfnRenderRvals cmpt))
 
-                 (catch js/Error e
+                 (catch :default e
                    (throw-cmptfn-error e :post-render id cmpt mounting?))))))
 
          ;; Invoked after every rendering but the first
          :component-did-update
          (when-let [f ?post-render-fn]
-           (fn [cmpt old-argv]
+           (fn [^js cmpt old-argv]
              (let [argv (reagent.core/argv cmpt)
                    mounting? false]
 
@@ -105,21 +143,24 @@
                    (.-cfnMountRvals  cmpt)
                    (.-cfnRenderRvals cmpt))
 
-                 (catch js/Error e
+                 (catch :default e
                    (throw-cmptfn-error e :post-render id cmpt mounting?))))))
 
          :component-will-unmount
-         (when-let [f ?unmount-fn]
-           (fn [cmpt]
-             (let [argv (reagent.core/argv cmpt)]
+         (fn [^js cmpt]
+           (try
+             (when-let [f ?unmount-fn]
+               (let [argv (reagent.core/argv cmpt)]
 
-               (try
-                 (f cmpt argv
-                   (.-cfnMountRvals  cmpt)
-                   (.-cfnRenderRvals cmpt))
+                 (try
+                   (f cmpt argv
+                     (.-cfnMountRvals  cmpt)
+                     (.-cfnRenderRvals cmpt))
 
-                 (catch js/Error e
-                   (throw-cmptfn-error e :unmount id cmpt false))))))))))
+                   (catch :default e
+                     (throw-cmptfn-error e :unmount id cmpt false)))))
+             (finally
+               (schedule-cmptfn-rvals-clear! cmpt))))))))
 
 #?(:clj
    (defmacro cmptfn
@@ -142,7 +183,17 @@
        * (<cmpt> <...>) - to get inlining.
        * [<cmpt> <...>] - to get an intermediary Reagent component:
          * Rerender-iff-args-change semantics.
-         * Can take ^{:key _} [<cmpt> <...>]."
+         * Can take ^{:key _} [<cmpt> <...>].
+
+     - Lifecycle behaviour:
+       * Component `id` becomes the React display-name for DevTools/stack traces.
+       * `:let-mount` runs during render; keep it cheap/idempotent.
+       * `:let-mount` bindings evaluate once per mount and are cleared after unmount.
+       * React StrictMode remounts preserve lifecycle values for the reused instance.
+       * StrictMode remounts may run `:post-render` with `this-mounting?` true
+         while preserving `:let-render` values from the prior render.
+       * Lifecycle errors include component/lifecycle ex-data; non-`js/Error`
+         throws are preserved under `:thrown`."
      [id params & args]
      `(common/cmptfn taoensso.tengen.reagent/-new-cmptfn
         ~id ~params ~@args)))
