@@ -12,7 +12,7 @@
 ;;;;
 
 #?(:cljs
-   (defn- set-cmpt-argv! [cmpt argv]
+   (defn- set-cmpt-argv! [^js cmpt argv]
      (let [props (js-obj)]
        (set! (.-argv props) argv)
        (set! (.-props cmpt) props)
@@ -45,7 +45,7 @@
                   :unmount     (swap! events_ conj [:unmount x mount-val render-val])))))
 
        (let [class-map @class-map_
-             cmpt      (new-test-cmpt [::component "Ada"])]
+             ^js cmpt  (new-test-cmpt [::component "Ada"])]
 
          (is (= (str ::lifecycle) (:display-name class-map)))
 
@@ -106,7 +106,7 @@
              :unmount    nil))
 
          (let [class-map @class-map_
-               cmpt      (new-test-cmpt [::component "Ada"])]
+               ^js cmpt  (new-test-cmpt [::component "Ada"])]
            ((:render class-map) cmpt)
            ((:component-did-mount class-map) cmpt)
            ((:component-will-unmount class-map) cmpt)
@@ -147,5 +147,3 @@
      (when-not (test/successful? m)
        ;; Trigger non-zero `lein test-cljs` exit code for CI
        (throw (ex-info "ClojureScript tests failed" {})))))
-
-#?(:cljs (test/run-tests))

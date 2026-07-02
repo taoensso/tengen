@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "npm run test:cljs && npm run test:react19",
+    "test:cljs": "shadow-cljs compile cljs-test",
+    "test:react19": "shadow-cljs compile react19-test"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "shadow-cljs": "3.4.11"
+  }
+}

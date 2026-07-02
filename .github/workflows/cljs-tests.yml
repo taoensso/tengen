@@ -14,6 +14,10 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: ${{ matrix.java }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
       - uses: DeLaGuardo/setup-clojure@13.6.0
         with:
           lein: 2.12.0 # Pinned 2026-06-11: `latest` (2.13.0) currently breaks setup-clojure's Windows lein.ps1 shim
@@ -24,4 +28,6 @@ jobs:
           key: deps-${{ runner.os }}-${{ hashFiles('project.clj') }}
           restore-keys: |
             deps-${{ runner.os }}-
+      - run: npm ci
       - run: lein test-cljs
+      - run: npm run test:react19

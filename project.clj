@@ -36,6 +36,9 @@
    :test
    {:injections [(println "Lein profile: :test")]}
 
+   :cljs-test
+   {:global-vars {*warn-on-reflection* false}}
+
    :dev
    {:injections [(println "Lein profile: :dev")]
     :jvm-opts
@@ -49,37 +52,18 @@
 
     :dependencies
     [[org.clojure/test.check "1.1.3"]
-     [cljsjs/react           "18.3.1-1"]
-     [cljsjs/react-dom       "18.3.1-1"]
-     [reagent                "2.0.1"]]
+     [reagent                "2.0.1"]
+     [thheller/shadow-cljs   "3.4.11"]]
 
     :plugins
     [[lein-pprint    "1.3.2"]
-     [lein-ancient   "1.0.0"]
-     [lein-cljsbuild "1.1.8"]]}}
-
-  :cljsbuild
-  {:test-commands {"node" ["node" "target/test.js"]}
-   :builds
-   [{:id :main
-     :source-paths ["src"]
-     :compiler
-     {:output-to "target/main.js"
-      :optimizations :advanced}}
-
-    {:id :test
-     :source-paths ["src" "test"]
-     :compiler
-     {:output-to "target/test.js"
-      :target :nodejs
-      :optimizations :simple
-      :main taoensso.tengen-tests}}]}
+     [lein-ancient   "1.0.0"]]}}
 
   :aliases
   {"start-dev"  ["with-profile" "+dev" "repl" ":headless"]
-   "build-once" ["do" ["clean"] ["cljsbuild" "once"]]
+   "build-once" ["do" ["clean"] ["test-cljs"]]
    "deploy-lib" ["do" ["build-once"] ["deploy" "clojars"] ["install"]]
 
    "test-clj"   ["with-profile" "+c1.12:+c1.11:+c1.10" "test"]
-   "test-cljs"  ["with-profile" "+c1.12" "cljsbuild"   "test"]
+   "test-cljs"  ["with-profile" "+c1.12,+cljs-test" "run" "-m" "shadow.cljs.devtools.cli" "compile" "cljs-test"]
    "test-all"   ["do" ["clean"] ["test-clj"] ["test-cljs"]]})
